@@ -1,2 +1,4 @@
 google-maps-api.key
 .vs-code/
+data/
+node_modules

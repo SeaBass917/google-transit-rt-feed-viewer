@@ -1,0 +1,37 @@
+{
+  "name": "google-transit-rt-feed-viewer",
+  "version": "1.0.0",
+  "description": "Tool created to allow developers to visualize their Google Transit Real Time Feed data.",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@googlemaps/js-api-loader": "^1.14.3",
+    "@googlemaps/markerclusterer": "2.0.3",
+    "express": "^4.15.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SeaBass917/google-transit-rt-feed-viewer.git"
+  },
+  "keywords": [
+    "google",
+    "Google",
+    "transit",
+    "real",
+    "time",
+    "realtime",
+    "feed",
+    "data",
+    "visualization",
+    "viewer"
+  ],
+  "author": "Sebastian Thiem",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/SeaBass917/google-transit-rt-feed-viewer/issues"
+  },
+  "homepage": "https://github.com/SeaBass917/google-transit-rt-feed-viewer#readme"
+}
