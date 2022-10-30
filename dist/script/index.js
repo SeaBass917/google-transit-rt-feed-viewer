@@ -52,24 +52,7 @@ function beginPolling() {
  * Query the server for updated realtime data.
  */
 function poll(){
-    // Cooldown that prevent polling before a certain point
-    if(READY_TO_POLL){
-        
-        // $.get('/Ping')
-        // .done(function(res, status){
-        //     document.getElementById('upTimeButton').classList.remove('disabled');
-        //     document.getElementById('upTimeButton').classList.add('unclicked');
-        //     document.body.style.backgroundColor = "#FFFFFF";
-        //     PING_TIMER = PING_CYLES
-        // })
-        // .fail(function(xhr, status, error){                
-        //     document.getElementById('upTimeButton').classList.remove('unclicked');
-        //     document.getElementById('upTimeButton').classList.add('disabled');
-        //     document.body.style.backgroundColor = "#ff8c94";
-        //     PING_TIMER = PING_CYLES
-        // })
-    }
-
+    getRealtimeData();
     setTimeout(poll, POLLING_INTERVAL)
 }
 
@@ -82,8 +65,10 @@ function poll(){
  * And use it to draw the routes on google maps.
  */
 async function getAPIKey(){
-    $.get(GET_API_KEY, function(data, status){
-        preinitMap(data);
+    return new Promise(resolve => {
+        $.get(GET_API_KEY, function(data, status){
+            resolve(data);
+        });
     });
 }
 
@@ -135,9 +120,14 @@ async function getRealtimeData(){
  * @param {String} apiKey The API key for this intance of google Maps.
  */
 function preinitMap(apiKey){
+    
+    // Set up the API connection.
     var script = document.createElement("script");
     script.setAttribute("src",`https://maps.googleapis.com/maps/api/js?key=${apiKey}&callback=initMap`);
     document.getElementsByTagName("head")[0].appendChild(script);
+
+    // Configure the callback.
+    window.initMap = initMap;
 }
 
 /**
@@ -187,12 +177,15 @@ function drawRoutes(routes){
     }
 }
 
+/**
+ * Compute the bounds of the stop marker based on the zoom factor of the map.
+ * @param {{lat : number, lng : number}} loc 
+ * @returns {{north : string, south : string, east : string, west : string}} Bounds.
+ */
 function computeStopBounds(loc){
 
-    console.log();
-
+    // Set the scale based on a *seemingly* good scaling function.
     const zoom = map.getZoom();
-
     const factor_lat = 0.001 * 130 / (zoom ** 2.2);
     const factor_lng = 0.001 * 160 / (zoom ** 2.2);
 
@@ -322,8 +315,6 @@ function drawStops(stops){
     }
 
     map.addListener("zoom_changed", () => {
-        console.log(map.getZoom());
-
         for(let stop of stops){
             if(stop.hasOwnProperty("rect")){
                 stop["rect"].setOptions({
@@ -344,9 +335,6 @@ function setBounds(bounds){
         bounds["ne"]
     );
     map.fitBounds(googleBounds);
-
-    console.log(`Bounds are`);
-    console.log(map.getBounds());
 }
 
 /**
@@ -356,16 +344,17 @@ function setBounds(bounds){
  * @param {Object} realtimeData Realtime feed data from server.
  */
 function update(realtimeData){
-
+    if(map){
+        console.log("Nothing to do yet.");
+    }
 }
-
-// Configure callbacks
-window.initMap = initMap;
 
 // Main
 $(document).ready(async function(){
 
-    await getAPIKey();
+    // This method will prepare the map API.
+    // And set up the callback to initMap();
+    preinitMap(await getAPIKey());
 
     // Begin polling for realtime feed data
     beginPolling();
