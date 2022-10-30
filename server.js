@@ -72,15 +72,19 @@ async function loadStaticDataFile(filename){
     return new Promise(resolve => {
         var static_data = [];
         const csvParser = parse({delimiter: ','});
+        const filepath = `${DIR_DATA}/${filename}.txt`;
 
-        fs.createReadStream(`${DIR_DATA}/${filename}.txt`)
+        fs.createReadStream(filepath)
+        .on("error", () => {
+            throw `${filepath} is missing.`;
+        })
         .pipe(csvParser)
         .on("data", (data) => {
             static_data.push(data);
         })
         .on("end", () => {
             resolve(new StaticCSV(static_data));
-        })
+        });
     });
 }
 
