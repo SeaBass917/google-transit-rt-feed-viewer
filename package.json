@@ -10,6 +10,9 @@
   "dependencies": {
     "@googlemaps/js-api-loader": "^1.14.3",
     "@googlemaps/markerclusterer": "2.0.3",
+    "csv-parse": "5.3.1",
+    "child_process": "1.0.2",
+    "protobufjs": "7.1.2",
     "express": "^4.15.2"
   },
   "repository": {
