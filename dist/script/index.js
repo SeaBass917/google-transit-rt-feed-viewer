@@ -37,6 +37,8 @@ var drawnRouteLines = [];
 
 var stopPopups = {};
 
+var trainMarkers = [];
+
 /*********************
  * Polling Functions *
  *********************/
@@ -344,9 +346,19 @@ function setBounds(bounds){
  * @param {Object} realtimeData Realtime feed data from server.
  */
 function update(realtimeData){
-    if(map){
+    if(!map){
         console.log("Nothing to do yet.");
     }
+    
+    console.log(realtimeData)
+
+    let pos = realtimeData.entity[0].vehicle.position
+    
+    beachMarker = new google.maps.Marker({
+        position: { lat: pos.latitude, lng: pos.longitude },
+        map,
+        // icon: "img/toy-train.png",
+    });
 }
 
 // Main

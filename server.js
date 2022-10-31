@@ -10,7 +10,7 @@ var GtfsRealtimeBindings = require('gtfs-realtime-bindings');
 const StaticCSV = require('./staticcsv');
 
 /*
- * Constants
+ * Constants and server globals
  */
 const DIR_DATA = "./data/";
 var staticData = {};
@@ -18,6 +18,8 @@ var gtfsShapes = {};
 var bounds = {};
 var gtfsRoutes = [];
 var gtfsStops = [];
+const PATH_RT_FEED_DEFAULT = "./rt-feed";
+var PATH_RT_FEED = PATH_RT_FEED_DEFAULT;
 
 /*
  * Express Configurations
@@ -37,6 +39,7 @@ var server = app.listen(PORT, function () {
 });
 
 app.use("/dist", express.static('./dist/'));
+app.use("/img", express.static('./img/'));
 
 /*
  * Helper Functions
@@ -66,7 +69,7 @@ function haversine(coord1, coord2){
  * Utility code that was used to create the sample feed.
  * Not intended for use, but kept in case further samples are needed.
  */
-async function generateMochStream(){
+async function _generateMochStream(){
     
     // Select a path from the shapes
     const shapeIds = Object.keys(gtfsShapes)
@@ -265,6 +268,9 @@ async function generateMochStream(){
  */
 async function executeMochStream(){
 
+    // Point to a testing location.
+    PATH_RT_FEED = "./test-rt-feed";
+
     fs.readFile("sample-rt-feed-0.json", async function (err, data) {
         if (err) {
             console.log(err);
@@ -287,13 +293,13 @@ async function executeMochStream(){
                 message.entity[0].tripUpdate.timestamp = timeNow;
                 for(let stu of message.entity[0].tripUpdate.stopTimeUpdate){
                     let arrivalTime = timeNow + 5*(stopLookup[stu.stopId] - id)
-                    stu.arrival = arrivalTime;
-                    stu.departure = arrivalTime + 3;
+                    stu.arrival.time = arrivalTime;
+                    stu.departure.time = arrivalTime + 3;
                 }
                 message.entity[0].vehicle.timestamp = timeNow;
     
                 const binData = GtfsRealtimeBindings.transit_realtime.FeedMessage.encode(message).finish();
-                fs.writeFileSync("test-rt-feed", binData, "binary", function (err) {
+                fs.writeFileSync(PATH_RT_FEED, binData, "binary", function (err) {
                     if (err) {
                         console.log(err);
                     }
@@ -302,6 +308,9 @@ async function executeMochStream(){
                 // Sleep 5 seconds
                 await new Promise(r => setTimeout(r, 5000));
             }
+
+            // Restore path to default.
+            PATH_RT_FEED = PATH_RT_FEED_DEFAULT;
         }
     });
 }
@@ -375,7 +384,12 @@ async function loadAPIKey(){
  */
 async function loadRTFeed(){
     return new Promise(resolve => {
-        resolve({});
+        fs.readFile(PATH_RT_FEED, (err, data) =>{
+            if (err) {
+                throw err;
+            }
+            resolve(GtfsRealtimeBindings.transit_realtime.FeedMessage.decode(data));
+        });
     });
 }
 
