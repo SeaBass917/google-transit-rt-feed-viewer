@@ -78,7 +78,7 @@ async function getAPIKey(){
  */
 async function getRouteData(){
     $.get(GET_ROUTES, function(data, status){
-        drawRoutes(data["routes"]);
+        drawRoutes(data);
     });
 }
 

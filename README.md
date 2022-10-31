@@ -12,3 +12,10 @@ as long as they provide their own key.
 
 Once you have access to the API, generate a key and place it in this directory 
 under a file named: `google-maps-api.key`.
+
+## TODO
+- Support for Alerts.
+    - Be nice to have an Alert Queue that you can see the active alarms in.
+- Support for newer versions of Google Transit.
+    - I saw that this version in NPM doesn't have wheelchair accessibilty.
+    - So at some point we should separate from npm and just use the latest protobuf version.
