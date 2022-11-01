@@ -83,6 +83,14 @@ h1#title {
 
 div#main{
     width: 100%;
+    /* display: flex; */
+}
+
+div#content {
+    display: flex;
+}
+#content h2 {
+    
 }
 
 .card {
@@ -91,11 +99,16 @@ div#main{
 }
 
 #mapCard {
+    justify-content: center;
+    align-items: center;
     display: flex;
     height: 52vh;
     width: 52vh;
-    justify-content: center;
-    align-items: center;
+}
+
+#tripStats {
+    /* height: 52vh;
+    width: 52vh; */
 }
 
 #map {
@@ -291,4 +304,26 @@ input:checked + .slider:before {
 
 .slider.round:before {
     border-radius: 50%;
+}
+
+.fixed_header{
+    width: 400px;
+    table-layout: fixed;
+    border-collapse: collapse;
+}
+
+.fixed_header tbody{
+  overflow: auto;
+  height: 100px;
+}
+
+.fixed_header thead {
+  background: black;
+  color:#fff;
+}
+
+.fixed_header th, .fixed_header td {
+  padding: 5px;
+  text-align: left;
+  width: 200px;
 }

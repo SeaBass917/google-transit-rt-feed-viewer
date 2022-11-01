@@ -291,30 +291,65 @@ async function executeMochStream(){
             // Pre-table the expected id for each stop
             // NOTE this is very specific to this particular sample data
             let stopLookup = testData["stopLookup"];
-
-            let timeNow = Math.floor(Date.now()/1000);
             
-            for(let message of messages){
-                // NOTE if the flag is ever raises, end the stream
-                if(mochStreamCancelFlag) {
-                    mochStreamCancelFlag = false;
-                    writeRTFeed();
-                    return;
-                }
+            // NOTE we're gunna get the most out of this foax data.
+            // Have 2 trips in parallel that are further up the route
+            const numMsgs = messages.length;
+            let i0 = 0;
+            let i1 = Math.floor(numMsgs / 3);
+            let i2 = Math.floor(numMsgs * 2 / 3);
+            for(i0; i0 < numMsgs; i0++, i1++, i2++){
 
-                let id = message.entity[0].id;
+                let timeNow = Math.floor(Date.now()/1000);
 
-                // Adjust times to be current.
-                message.header.timestamp = timeNow;
-                message.entity[0].tripUpdate.timestamp = timeNow;
-                for(let stu of message.entity[0].tripUpdate.stopTimeUpdate){
-                    let arrivalTime = timeNow + 5*(stopLookup[stu.stopId] - id)
-                    stu.arrival.time = arrivalTime;
-                    stu.departure.time = arrivalTime + 3;
+                let messageFull = messages[i0];
+                messageFull.header.timestamp = timeNow;
+
+                // Loop through each "trip"
+                let chars = ["a", "b", "c", "d", "e", "f", "g", "h"];
+                let n = 0;
+                for(let i of [i0, i1, i2]){
+                    if(numMsgs <= i) break;
+                    
+                    let entity = messages[i].entity[0];
+
+                    // NOTE if the flag is ever raises, end the stream
+                    if(mochStreamCancelFlag) {
+                        mochStreamCancelFlag = false;
+                        writeRTFeed();
+                        return;
+                    }
+
+                    let id = entity.id;
+
+                    // Adjust times to be current.
+                    entity.tripUpdate.timestamp = timeNow;
+                    for(let stu of entity.tripUpdate.stopTimeUpdate){
+                        let arrivalTime = timeNow + 5*(stopLookup[stu.stopId] - id)
+                        stu.arrival.time = arrivalTime;
+                        stu.departure.time = arrivalTime + 3;
+                    }
+                    entity.vehicle.timestamp = timeNow;
+                    
+                    // Change the trip ID and train IDs
+                    const char = chars[n];
+                    entity.id += char;
+                    entity.tripUpdate.trip.tripId += char;
+                    entity.tripUpdate.vehicle.id += char;
+                    entity.vehicle.trip.tripId += char;
+                    entity.vehicle.vehicle.id += char;
+
+                    if(i == i0){
+                        messageFull.entity = [entity];
+                    }
+                    else{
+                        messageFull.entity.push(entity);
+                    }
+
+                    n++;
                 }
-                message.entity[0].vehicle.timestamp = timeNow;
     
-                const binData = GtfsRealtimeBindings.transit_realtime.FeedMessage.encode(message).finish();
+                const binData = GtfsRealtimeBindings.transit_realtime.FeedMessage.encode(messageFull).finish();
                 writeRTFeed(binData);
 
                 // Sleep 5 seconds
