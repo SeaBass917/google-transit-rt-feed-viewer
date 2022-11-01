@@ -3,11 +3,13 @@
  */
 const express = require("express");
 const fs = require('fs');
+const bodyParser = require('body-parser');
 // const { spawn } = require('child_process');
 const { parse } = require('csv-parse');
 var GtfsRealtimeBindings = require('gtfs-realtime-bindings');
 
 const StaticCSV = require('./staticcsv');
+const { clear } = require("console");
 
 /*
  * Constants and server globals
@@ -20,6 +22,11 @@ var gtfsRoutes = [];
 var gtfsStops = [];
 const PATH_RT_FEED_DEFAULT = "./rt-feed";
 var PATH_RT_FEED = PATH_RT_FEED_DEFAULT;
+var mochStreamSampleSpeed = 5000;
+var mochStreamCancelFlag = false;
+
+// Keep track of how many times we get a request but don't respond yet
+var reqCntNoRes = 0;
 
 /*
  * Express Configurations
@@ -40,6 +47,8 @@ var server = app.listen(PORT, function () {
 
 app.use("/dist", express.static('./dist/'));
 app.use("/img", express.static('./img/'));
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.json());
 
 /*
  * Helper Functions
@@ -286,6 +295,13 @@ async function executeMochStream(){
             let timeNow = Math.floor(Date.now()/1000);
             
             for(let message of messages){
+                // NOTE if the flag is ever raises, end the stream
+                if(mochStreamCancelFlag) {
+                    mochStreamCancelFlag = false;
+                    writeRTFeed();
+                    return;
+                }
+
                 let id = message.entity[0].id;
 
                 // Adjust times to be current.
@@ -299,14 +315,10 @@ async function executeMochStream(){
                 message.entity[0].vehicle.timestamp = timeNow;
     
                 const binData = GtfsRealtimeBindings.transit_realtime.FeedMessage.encode(message).finish();
-                fs.writeFileSync(PATH_RT_FEED, binData, "binary", function (err) {
-                    if (err) {
-                        console.log(err);
-                    }
-                });
+                writeRTFeed(binData);
 
                 // Sleep 5 seconds
-                await new Promise(r => setTimeout(r, 5000));
+                await new Promise(r => setTimeout(r, mochStreamSampleSpeed));
             }
 
             // Restore path to default.
@@ -386,10 +398,59 @@ async function loadRTFeed(){
     return new Promise(resolve => {
         fs.readFile(PATH_RT_FEED, (err, data) =>{
             if (err) {
-                throw err;
+                reqCntNoRes++;
+                if(reqCntNoRes < 5){ 
+                    console.log("Request for data when no feed active.");
+                }
+                else if(reqCntNoRes == 5){
+                    console.log("Request for data when no feed active. (Warning silenced)...");
+                }
+                resolve({});
             }
-            resolve(GtfsRealtimeBindings.transit_realtime.FeedMessage.decode(data));
+            else{
+                try{
+                    let dataDecoded = GtfsRealtimeBindings.transit_realtime.FeedMessage.decode(data);
+
+                    if(reqCntNoRes){ 
+                        reqCntNoRes = 0;
+                        console.log("Feed is back online.");
+                    }
+
+                    resolve(dataDecoded);
+                }
+                catch(err){
+                    // Data is invalid
+                    console.log("Data bad >:c")
+                    reqCntNoRes++;
+                    resolve({});
+                }
+            }
         });
+    });
+}
+
+/**
+ * Write out binary data to the realtime feed;
+ * @param {char[]} binData Binary data to write to the realtime feed.
+ */
+function writeRTFeed(binData){
+
+    // No binary data provide, then create a default header.
+    if(!binData){
+        let emptyHeader = {
+            header: {
+                gtfsRealtimeVersion: "2.0",
+                incrementality: 0,
+                timestamp : Math.floor(Date.now()/1000),
+            }
+        };
+        binData = GtfsRealtimeBindings.transit_realtime.FeedMessage.encode(emptyHeader).finish();
+    }
+
+    fs.writeFileSync(PATH_RT_FEED, binData, "binary", function (err) {
+        if (err) {
+            console.log(err);
+        }
     });
 }
 
@@ -902,8 +963,26 @@ app.get('/GetRTFeed', (req, res) => {
     });
 });
 
-app.get('/PostRequestSampleData', (req, res) => {
+/*
+ * POST Requests
+ */
+
+app.post('/PostRequestSampleData', (req, res) => {
+    console.log("Sample messages requested.");
+    mochStreamSampleSpeed = req.body.sampleSpeed * 1000;
     executeMochStream();
+    res.status(200).send();
+});
+
+app.post('/PostCancelSampleData', (req, res) => {
+    console.log("Cancellation requested.");
+    mochStreamCancelFlag = true;
+    res.status(200).send();
+});
+
+app.post('/PostSampleRateUpdate', (req, res) => {
+    mochStreamSampleSpeed = req.body.sampleSpeed * 1000;
+    console.log(`Sample speed updated to ${mochStreamSampleSpeed/1000} seconds.`);
     res.status(200).send();
 });
 
@@ -923,8 +1002,6 @@ async function main(){
         gtfsRoutes = determineRoutes();
         gtfsStops = determineStops();
         gtfsShapes = determineShapes();
-
-        executeMochStream()
     }
     catch (err){
         console.log(err);

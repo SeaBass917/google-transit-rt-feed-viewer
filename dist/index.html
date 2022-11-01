@@ -3,11 +3,55 @@
   <head>
     <title>Test Map</title>
     <link rel="stylesheet" href="./dist/style/index.css" />
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script src="./dist/script/index.js"></script>
   </head>
   <body>
-    <h3>My Google Maps Demo</h3>
-    <div id="map"></div>
+    <div class="sidepanel">
+      <div id="profile">
+        <img src="img/me.png" alt="Stylized drawing of Sebastian Thiem" class="pfp">
+        <div id="profileTextBox">
+          <h3>Sebastian Thiem</h3>
+          <h4>Software Engineer</h4>
+        </div>
+      </div>
+      <div class="contactsbox">
+          <a href="https://github.com/SeaBass917" class="githublink" target="_blank"> 
+              <i class="fab fa-github fa-2x text-secondary"></i>
+              <p>Github</p>
+          </a>
+          <a href="https://www.linkedin.com/in/sebastian-thiem-4b25b1159/" class="linkedinlink" target="_blank">
+              <i class="fab fa-linkedin-in fa-2x text-secondary"></i>
+              <p>LinkedIn</p>
+          </a>
+      </div>
+      <footer>
+          &#169; Copyright 2022 Sebastian Thiem
+          <br>
+          All Rights Reserved.
+      </footer>
+    </div>
+    <div id="main">
+      <div id="header">
+        <h1 id="title">Google Transit - Realtime Feed Visualizer</h1>
+        <div id="simulationSector">
+          <div>
+            <h2>Toggle Simulated Realtime Feed</h2>
+            <h4>Use the text field below to adjust the frequency at which the server updates the realtime feed. (0.5s to 10s).</h4>
+          </div>
+          <div id="simulationInputs">
+            <input id="sampleSpeeds" name="sampleSpeeds" min="0" max="10" value=5.0>
+            <label class="switch">
+              <input type="checkbox" id="toggleSim">
+              <span class="slider round"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+      <div id="mapCard" class="card">
+        <div id="map"></div>
+      </div>
+    </div>
   </body>
 </html>

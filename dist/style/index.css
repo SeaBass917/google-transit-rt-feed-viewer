@@ -1,6 +1,109 @@
+body {
+    background-color: rgb(231, 231, 231);
+    margin: 0px;
+    display: flex;
+    height: 100vh;
+    width: 100vw;
+    font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+}
+
+div.sidepanel {
+    background-color: #090B10;
+    box-shadow: 20px;
+    flex-grow: 0;
+    flex-shrink: 0;
+    flex-basis: 280px;
+    
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    border-right: 2px solid rgba(0, 0, 0, 0.15);
+}
+@media screen and (max-width: 1240px){
+    div.sidepanel {
+        display: none;
+    }
+}
+div.sidepanel p,
+div.sidepanel a,
+div.sidepanel h2{
+    color: white;
+}
+
+.sidepanel h1,
+.sidepanel h2,
+.sidepanel h3,
+.sidepanel h4{
+    color: white;
+	margin: 5px 0px;
+}
+
+.sidepanel h3{
+    font-size: 18px;
+}
+.sidepanel h4{
+    font-size: 14px;
+    color: rgb(186, 186, 186);
+}
+
+div#header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    margin-bottom: 30px;
+    background-color: white;
+}
+
+h1#title {
+    margin: 30px;
+}
+
+#simulationSector {
+    margin-right: 100px;
+}
+#simulationSector h4{
+    color: rgba(0, 0, 0, 0.7);
+    width: 290px;
+}
+
+#simulationInputs {
+    display: flex;
+    justify-content: start;
+    align-items: center;
+    margin-bottom: 20px;
+}
+#simulationInputs > input {
+    margin-right: 5px;
+    width: 60px;
+    height: 27px;
+    font-size: medium;
+}
+
+div#main{
+    width: 100%;
+}
+
+.card {
+    background-color: rgb(247, 247, 247);
+    margin: 30px;
+}
+
+#mapCard {
+    display: flex;
+    height: 52vh;
+    width: 52vh;
+    justify-content: center;
+    align-items: center;
+}
+
 #map {
+    display: flex;
     height: 50vh;
     width: 50vh;
+    /* padding: 20px; */
+    /* border: 15px solid rgb(209, 220, 228); */
 }
 
 /* The popup bubble styling. */
@@ -54,4 +157,138 @@
     /* The max width of the info window. */
     width: 200px;
 }
-  
+
+div.sidepanel div#profile{
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    padding: 10px;
+    bottom: 100px;
+    position: absolute;
+}
+
+div.sidepanel div#profile > * {
+    /* display: inline-block; */
+    /* height: 200px; */
+    height: 75px;
+	float: left;
+	margin: 10px;
+    text-align: center;
+    vertical-align: middle;
+}
+
+img.pfp{
+    border-radius: 50%;
+    margin: 20px;
+
+    box-shadow: 1px 1px rgba(0, 0, 0, 0.5);
+}
+
+#profileTextBox {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.contactsbox{
+    margin: 20px;
+    width: 180px;
+    bottom: 35px;
+    position: absolute;
+    display: flex;
+    justify-content: center;
+}
+.contactsbox p{
+    margin: 0px 10px;
+}
+.contactsbox p,i{
+    font-weight: bold;
+    font-size: 16px;
+}
+.contactsbox a{
+    margin: 10px 0px;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+}
+div.sidepanel a.githublink{
+    color: #551A8B;
+}
+div.sidepanel a.linkedinlink{
+    color: #0073B1;
+}
+
+footer{
+    font-size: 9pt;
+    font-style: italic;
+    text-align: center;
+    color: #525252;
+    margin: 20px;
+    
+    position: absolute;
+    bottom: 0px;
+}
+
+/* The switch - the box around the slider */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 34px;
+}
+
+/* Hide default HTML checkbox */
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+/* The slider */
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    -webkit-transition: .4s;
+    transition: .4s;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 26px;
+    width: 26px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    -webkit-transition: .4s;
+    transition: .4s;
+}
+
+input:checked + .slider {
+    background-color: #2196F3;
+}
+
+input:focus + .slider {
+    box-shadow: 0 0 1px #2196F3;
+}
+
+input:checked + .slider:before {
+    -webkit-transform: translateX(26px);
+    -ms-transform: translateX(26px);
+    transform: translateX(26px);
+}
+
+/* Rounded sliders */
+.slider.round {
+    border-radius: 34px;
+}
+
+.slider.round:before {
+    border-radius: 50%;
+}

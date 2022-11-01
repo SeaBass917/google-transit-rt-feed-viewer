@@ -17,7 +17,8 @@
 
 var map;
 
-const POLLING_INTERVAL = 5000; //ms
+// Half a second.
+const POLLING_INTERVAL = 500; //ms
 var   READY_TO_POLL    = false;
 
 const GET_API_KEY = "/GetAPIKey";
@@ -25,6 +26,9 @@ const GET_RT_FEED = "/GetRTFeed";
 const GET_ROUTES  = "/GetRoutes";
 const GET_BOUNDS  = "/GetBounds";
 const GET_STOPS   = "/GetStops";
+const POST_REQ_SAMPLE = "/PostRequestSampleData";
+const POST_REQ_SAMPLE_CANCEL = "/PostCancelSampleData";
+const POST_SAMPLERATE_UPDATE = "/PostSampleRateUpdate";
 
 const stopsColor = "#6a3d9a";
 const colorTable = [
@@ -36,8 +40,9 @@ var colorIndex = 0;
 var drawnRouteLines = [];
 
 var stopPopups = {};
+var trainPopups = {};
 
-var trainMarkers = [];
+var trainMarkers = {};
 
 /*********************
  * Polling Functions *
@@ -113,6 +118,55 @@ async function getRealtimeData(){
     });
 }
 
+/**********************
+ * REST POST Functions *
+ **********************/
+
+/**
+ * Send a request to the server to get 
+ * Simulated realtime data.
+ * @param {Number} sampleSpeed Speed that the samples should be upated.
+ */
+async function requestSimulatedFeed(sampleSpeed){
+    $.post(POST_REQ_SAMPLE, {sampleSpeed: sampleSpeed}, function(data, status){
+        if(status !== 'success'){
+            console.log("Failed to request sim feed.")
+        }
+    });
+}
+
+/**
+ * Send a request to the server to request
+ * to switch back to the real feed.
+ */
+async function requestSimulatedFeedCancel(){
+    $.post(POST_REQ_SAMPLE_CANCEL, {}, function(data, status){
+        if(status === 'success'){
+            
+            // CLear out all the active train markers.
+            for(let tid of Object.keys(trainMarkers)){
+                trainMarkers[tid].setMap(null);
+                delete trainMarkers[tid];
+            }
+        }
+        else{
+            console.log("Failed to request sim feed cancellation.")
+        }
+    });
+}
+
+/**
+ * Update the rate of the sample speed; server-side.
+ * @param {Number} sampleSpeed Speed that the samples should be upated.
+ */
+async function postUpdateSampleSpeed(sampleSpeed){
+    $.post(POST_SAMPLERATE_UPDATE, {sampleSpeed: sampleSpeed}, function(data, status){
+        if(status !== 'success'){
+            console.log("Failed to update sample speed.")
+        }
+    });
+}
+
 /*************
  * Callbacks *
  *************/
@@ -139,6 +193,87 @@ async function initMap() {
     map = new google.maps.Map(document.getElementById("map"), {
         zoom: 2,
         center: { lat: 0, lng: 0 },
+        // Dark theme
+        // styles: [
+        //     { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
+        //     { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] },
+        //     { elementType: "labels.text.fill", stylers: [{ color: "#746855" }] },
+        //     {
+        //     featureType: "administrative.locality",
+        //     elementType: "labels.text.fill",
+        //     stylers: [{ color: "#d59563" }],
+        //     },
+        //     {
+        //     featureType: "poi",
+        //     elementType: "labels.text.fill",
+        //     stylers: [{ color: "#d59563" }],
+        //     },
+        //     {
+        //     featureType: "poi.park",
+        //     elementType: "geometry",
+        //     stylers: [{ color: "#263c3f" }],
+        //     },
+        //     {
+        //     featureType: "poi.park",
+        //     elementType: "labels.text.fill",
+        //     stylers: [{ color: "#6b9a76" }],
+        //     },
+        //     {
+        //     featureType: "road",
+        //     elementType: "geometry",
+        //     stylers: [{ color: "#38414e" }],
+        //     },
+        //     {
+        //     featureType: "road",
+        //     elementType: "geometry.stroke",
+        //     stylers: [{ color: "#212a37" }],
+        //     },
+        //     {
+        //     featureType: "road",
+        //     elementType: "labels.text.fill",
+        //     stylers: [{ color: "#9ca5b3" }],
+        //     },
+        //     {
+        //     featureType: "road.highway",
+        //     elementType: "geometry",
+        //     stylers: [{ color: "#746855" }],
+        //     },
+        //     {
+        //     featureType: "road.highway",
+        //     elementType: "geometry.stroke",
+        //     stylers: [{ color: "#1f2835" }],
+        //     },
+        //     {
+        //     featureType: "road.highway",
+        //     elementType: "labels.text.fill",
+        //     stylers: [{ color: "#f3d19c" }],
+        //     },
+        //     {
+        //     featureType: "transit",
+        //     elementType: "geometry",
+        //     stylers: [{ color: "#2f3948" }],
+        //     },
+        //     {
+        //     featureType: "transit.station",
+        //     elementType: "labels.text.fill",
+        //     stylers: [{ color: "#d59563" }],
+        //     },
+        //     {
+        //     featureType: "water",
+        //     elementType: "geometry",
+        //     stylers: [{ color: "#17263c" }],
+        //     },
+        //     {
+        //     featureType: "water",
+        //     elementType: "labels.text.fill",
+        //     stylers: [{ color: "#515c6d" }],
+        //     },
+        //     {
+        //     featureType: "water",
+        //     elementType: "labels.text.stroke",
+        //     stylers: [{ color: "#17263c" }],
+        //     },
+        // ],
     });
     
     // Aquire routes data
@@ -340,29 +475,186 @@ function setBounds(bounds){
 }
 
 /**
+ * Update the tracking markers for each vehicle in the update.
+ * @param {FeedMessage} realtimeData Google Transit FeedMessage
+ */
+function updateVehicleMarkers(realtimeData){
+
+    class TrainLabel extends google.maps.OverlayView {
+        position;
+        containerDiv;
+
+        constructor(position, content) {
+            super();
+            this.position = position;
+
+            content.classList.add("popup-bubble");
+
+            // This zero-height div is positioned at the bottom of the bubble.
+            const bubbleAnchor = document.createElement("div");
+
+            bubbleAnchor.classList.add("popup-bubble-anchor");
+            bubbleAnchor.appendChild(content);
+
+            // This zero-height div is positioned at the bottom of the tip.
+            this.containerDiv = document.createElement("div");
+            this.containerDiv.classList.add("popup-container");
+            this.containerDiv.appendChild(bubbleAnchor);
+
+            // Optionally stop clicks, etc., from bubbling up to the map.
+            TrainLabel.preventMapHitsAndGesturesFrom(this.containerDiv);
+        }
+
+        /** Called when the popup is added to the map. */
+        onAdd() {
+            let pane = this.getPanes();
+            if(pane){
+                pane.floatPane.appendChild(this.containerDiv);
+            }
+        }
+
+        /** Called when the popup is removed from the map. */
+        onRemove() {
+            if (this.containerDiv.parentElement) {
+                this.containerDiv.parentElement.removeChild(this.containerDiv);
+            }
+        }
+
+        /** Called each frame when the popup needs to draw itself. */
+        draw() {
+            const divPosition = this.getProjection().fromLatLngToDivPixel(
+                this.position
+            );
+
+            // Hide the popup when it is far out of view.
+            const display =
+            Math.abs(divPosition.x) < 4000 && Math.abs(divPosition.y) < 4000
+                ? "block"
+                : "none";
+
+            if (display === "block") {
+            this.containerDiv.style.left = divPosition.x + "px";
+            this.containerDiv.style.top = divPosition.y + "px";
+            }
+
+            if (this.containerDiv.style.display !== display) {
+            this.containerDiv.style.display = display;
+            }
+        }
+    }
+
+    const entities = realtimeData.entity? realtimeData.entity : [];
+
+    // Keep a list of active tids so we can remove trains that are no longer active at the end
+    let tidsActive = new Set();
+    for(let entity of entities){
+        let pos = entity.vehicle.position;
+        let tid = entity.vehicle.vehicle.id;
+
+        tidsActive.add(tid);
+
+        // If the train was already active before
+        // Determine it's direction and see if it has moved.
+        let dirLeft = false;
+        if(trainMarkers.hasOwnProperty(tid)){
+            let locPrev = trainMarkers[tid].getPosition()
+            dirLeft = pos.longitude < locPrev.lng();
+            
+            // If train hasn't moved don't redraw anything
+            if(locPrev.lat() == pos.latitude && locPrev.lng() == pos.longitude){
+                continue;
+            }
+
+            // Otherwise Clear the previous marker
+            trainMarkers[tid].setMap(null);
+        }
+
+        // Create a new marker
+        let icon = dirLeft ? "img/toy-train-60-left.png" : "img/toy-train-60-right.png";
+        marker = new google.maps.Marker({
+            position: { lat: pos.latitude, lng: pos.longitude },
+            map,
+            icon: icon,
+        });
+
+        trainMarkers[tid] = marker;
+
+        /// NOTE: Issues with scaling factor and making sure the popup 
+        ///       stays on top of the train marker.
+        // Also create the popup
+        // var popup = document.createElement("div");
+        // popup.setAttribute("id", `trn_${i}`);
+        // popup.textContent = entity.vehicle.vehicle.id;
+        // popup = new TrainLabel(
+        //     {
+        //         // NOTE we want it slightly above
+        //         lat: pos.latitude + 0.001 * 130 / (map.getZoom() ** 2.2), 
+        //         lng: pos.longitude
+        //     }, 
+        //     popup
+        // );
+        // trainPopups[i] = popup;
+
+        // // Configure the on-hover event
+        // marker.addListener("mouseover", (evt) => {
+        //     trainPopups[i].setMap(map);
+        // });
+        // marker.addListener("mouseout", (evt) => {
+        //     trainPopups[i].setMap(null);
+        // });
+    }
+
+    // Clear inactive train markers
+    for(let tid of Object.keys(trainMarkers)){
+        if(!tidsActive.has(tid)){
+            trainMarkers[tid].setMap(null);
+            delete trainMarkers[tid];
+        }
+    }
+}
+
+/**
  * Update the following based on the latest realtime data:
  *      - Vehicle markers
  *      - Active Trips
  * @param {Object} realtimeData Realtime feed data from server.
  */
 function update(realtimeData){
+
     if(!map){
         console.log("Nothing to do yet.");
+        return;
     }
-    
-    console.log(realtimeData)
 
-    let pos = realtimeData.entity[0].vehicle.position
-    
-    beachMarker = new google.maps.Marker({
-        position: { lat: pos.latitude, lng: pos.longitude },
-        map,
-        // icon: "img/toy-train.png",
-    });
+    updateVehicleMarkers(realtimeData);
 }
 
 // Main
 $(document).ready(async function(){
+
+    // Register checks for invalid input to
+    // Sample speed box
+    $('#sampleSpeeds').change(function() {
+        let thisObj = $('#sampleSpeeds');
+        let sampleSpeed = thisObj.val();
+        if(sampleSpeed < 0.5 || 10 < sampleSpeed){
+            alert("Sample speed must be between 0.5 and 10");
+            thisObj.val("5.0");
+            sampleSpeed = 5;
+        }
+        postUpdateSampleSpeed(sampleSpeed);
+    });
+    
+    // Register sim check box
+    $('#toggleSim').change(function() {
+        if(this.checked){
+            sampleSpeed = $("#sampleSpeeds").val();
+            requestSimulatedFeed(sampleSpeed);
+        }
+        else{
+            requestSimulatedFeedCancel();
+        }
+    });
 
     // This method will prepare the map API.
     // And set up the callback to initMap();
