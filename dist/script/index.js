@@ -628,7 +628,7 @@ function updateVehicleMarkers(realtimeData){
  * @param {FeedMessage} realtimeData Google Transit FeedMessage
  */
 function updateTripsTable(realtimeData){
-    console.log(realtimeData);
+    // console.log(realtimeData);
     
     const entities = realtimeData.entity? realtimeData.entity : [];
 
@@ -652,6 +652,8 @@ function updateTripsTable(realtimeData){
         let tid = tripUpdate.vehicle.id;
         let stopTimeUpdates = tripUpdate.stopTimeUpdate;
         let divId = "tripTable-" + id;
+
+        if(!stopTimeUpdates) continue;
         
         tripsActive.add(divId);
 
@@ -659,7 +661,7 @@ function updateTripsTable(realtimeData){
         let existingTab = null;
         for(let div of tripStats.children("div")){
             if (divId == div.id){
-                existingTab = div;
+                existingTab = $(div);
                 break;
             }
         }
@@ -673,7 +675,7 @@ function updateTripsTable(realtimeData){
             tripStats.append(input);
             tripStats.append(label);
             tripStats.append(div);
-            existingTab = div;
+            existingTab = $(div);
         }
 
         // Build the table string from the stop time update data
@@ -705,7 +707,6 @@ function updateTripsTable(realtimeData){
         tableStr += "</table>";
 
         // Populate the div with the table
-        console.log(existingTab);
         existingTab.empty();
         existingTab.append(header);
         existingTab.append(tableStr);
@@ -718,9 +719,17 @@ function updateTripsTable(realtimeData){
         if(!tripsActive.has(div.id)){
             let id = div.id.split("-")[1];
 
-            tripStats.children(`#input-${id}`).remove();
+            let input = tripStats.children(`#input-${id}`)[0];
+            let thisOneWasChecked = $(input).is(":checked");
+            input.remove();
             tripStats.children(`#label-${id}`).remove();
             tripStats.children(`#tripTable-${id}`).remove();
+            if(thisOneWasChecked){
+                let inputs = tripStats.children("input");
+                if(inputs){
+                    inputs[0].checked = true;
+                }
+            }
         }
     }
 }
@@ -764,8 +773,8 @@ $(document).ready(async function(){
         let sampleSpeed = thisObj.val();
         if(sampleSpeed < 0.5 || 10 < sampleSpeed){
             alert("Sample speed must be between 0.5 and 10");
-            thisObj.val("5.0");
-            sampleSpeed = 5;
+            thisObj.val("2.0");
+            sampleSpeed = 2;
         }
         postUpdateSampleSpeed(sampleSpeed);
     });

@@ -22,7 +22,7 @@ var gtfsRoutes = [];
 var gtfsStops = [];
 const PATH_RT_FEED_DEFAULT = "./rt-feed";
 var PATH_RT_FEED = PATH_RT_FEED_DEFAULT;
-var mochStreamSampleSpeed = 5000;
+var mochStreamSampleSpeed = 2000;
 var mochStreamCancelFlag = false;
 
 // Keep track of how many times we get a request but don't respond yet
@@ -311,7 +311,7 @@ async function executeMochStream(){
                 for(let i of [i0, i1, i2]){
                     if(numMsgs <= i) break;
                     
-                    let entity = messages[i].entity[0];
+                    let entity = JSON.parse(JSON.stringify(messages[i].entity[0]));
 
                     // NOTE if the flag is ever raises, end the stream
                     if(mochStreamCancelFlag) {
@@ -1037,6 +1037,8 @@ async function main(){
         gtfsRoutes = determineRoutes();
         gtfsStops = determineStops();
         gtfsShapes = determineShapes();
+
+        executeMochStream()
     }
     catch (err){
         console.log(err);
