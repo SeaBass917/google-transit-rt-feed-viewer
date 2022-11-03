@@ -44,6 +44,8 @@ var trainPopups = {};
 
 var trainMarkers = {};
 
+var stopsData = {};
+
 /*********************
  * Polling Functions *
  *********************/
@@ -94,6 +96,13 @@ async function getRouteData(){
  */
 async function getStopsData(){
     $.get(GET_STOPS, function(data, status){
+        
+        // Store down known stop names
+        // Don't clear it each time, just write down what we learn.
+        for(let stop of data){
+            stopsData[stop["id"]] = stop["name"];
+        }
+
         drawStops(data);
     });
 }
@@ -613,6 +622,109 @@ function updateVehicleMarkers(realtimeData){
     }
 }
 
+
+/**
+ * Update the trips table to reflect the latest data.
+ * @param {FeedMessage} realtimeData Google Transit FeedMessage
+ */
+function updateTripsTable(realtimeData){
+    console.log(realtimeData);
+    
+    const entities = realtimeData.entity? realtimeData.entity : [];
+
+    for(let entity of entities){
+        let id = entity.tripUpdate.trip.tripId;
+    }
+
+    let tripStats = $("#tripStats");
+
+    // For each new trip create a table.
+    // Acquire a list of active trips, so we can delete ones that we previously active
+    // The order of operations here is:
+    //   - Scan the new info
+    //   - Modify the trip table if it already exists
+    //   - delete the table if it not active anymore
+    let tripsActive = new Set();
+    let i = 0;
+    for(let entity of entities){
+        let tripUpdate = entity.tripUpdate;
+        let id = tripUpdate.trip.tripId;
+        let tid = tripUpdate.vehicle.id;
+        let stopTimeUpdates = tripUpdate.stopTimeUpdate;
+        let divId = "tripTable-" + id;
+        
+        tripsActive.add(divId);
+
+        // Find the existing tab if it is present.
+        let existingTab = null;
+        for(let div of tripStats.children("div")){
+            if (divId == div.id){
+                existingTab = div;
+                break;
+            }
+        }
+
+        // If there was no existing tab, then create a new one
+        if(existingTab == null){
+            let checked = (i == 0)? " checked" : "";
+            let input = $(`<input type="radio" id="input-${id}" name="tripTabs"${checked} class="tab-switch"></input>`);
+            let label = $(`<label id="label-${id}" for="input-${id}" class="tab-label">${id}</label>`);
+            let div = $(`<div id="${divId}" class="tab"></div>`);
+            tripStats.append(input);
+            tripStats.append(label);
+            tripStats.append(div);
+            existingTab = div;
+        }
+
+        // Build the table string from the stop time update data
+        let header = $(`<h4>Train ${tid}</h4>`);
+        let tableStr = '<table class="fixed_header">';
+        tableStr += "<thead>";
+        tableStr += "<tr>";
+        tableStr += "<th>Leg</th>";
+        tableStr += "<th>Stop</th>";
+        tableStr += "<th>Arrival</th>";
+        tableStr += "<th>Departure</th>";
+        tableStr += "</tr>";
+        tableStr += "</thead>";
+        tableStr += "<tbody>";
+
+        for(let stopTimeUpdate of stopTimeUpdates){
+            let stopName = stopsData.hasOwnProperty(stopTimeUpdate.stopId) ? 
+                                stopsData[stopTimeUpdate.stopId] : 
+                                `<UNK Stop ID ${stopTimeUpdate.stopId}>`;
+
+            tableStr += "<tr>";
+            tableStr += `<td>${stopTimeUpdate.stopSequence}</td>`;
+            tableStr += `<td>${stopName}</td>`;
+            tableStr += `<td>${posixToStr(stopTimeUpdate.arrival.time)}</td>`;
+            tableStr += `<td>${posixToStr(stopTimeUpdate.departure.time)}</td>`;
+        }
+
+        tableStr += "</tbody>";
+        tableStr += "</table>";
+
+        // Populate the div with the table
+        console.log(existingTab);
+        existingTab.empty();
+        existingTab.append(header);
+        existingTab.append(tableStr);
+
+        i++;
+    }
+
+    // Clear out the no longer active tabs
+    for(let div of tripStats.children("div")){
+        if(!tripsActive.has(div.id)){
+            let id = div.id.split("-")[1];
+
+            tripStats.children(`#input-${id}`).remove();
+            tripStats.children(`#label-${id}`).remove();
+            tripStats.children(`#tripTable-${id}`).remove();
+        }
+    }
+}
+
 /**
  * Update the following based on the latest realtime data:
  *      - Vehicle markers
@@ -627,6 +739,19 @@ function update(realtimeData){
     }
 
     updateVehicleMarkers(realtimeData);
+
+    updateTripsTable(realtimeData);
+}
+
+function posixToStr(posixNum){
+    
+    let date = new Date(posixNum * 1000);
+    let hours = date.getHours();
+    let minutes = "0" + date.getMinutes();
+    let seconds = "0" + date.getSeconds();
+
+    // Will display time in 10:30:23 format
+    return hours + ':' + minutes.substr(-2) + ':' + seconds.substr(-2);
 }
 
 // Main
