@@ -20,11 +20,6 @@ div.sidepanel {
 
     border-right: 2px solid rgba(0, 0, 0, 0.15);
 }
-@media screen and (max-width: 1240px){
-    div.sidepanel {
-        display: none;
-    }
-}
 div.sidepanel p,
 div.sidepanel a,
 div.sidepanel h2{
@@ -88,6 +83,7 @@ div#main{
 
 div#content {
     display: flex;
+    flex-flow: column;
 }
 #content h2 {
     margin: 20px;
@@ -410,4 +406,18 @@ table.fixed_header th:nth-child(4), td:nth-child(4) {
 
 .tabs input[type="radio"]:checked + label + .tab {
     display: block;
+}
+
+/**
+ Responsive Behaviors
+*/
+@media screen and (max-width: 1785px){
+    div.sidepanel {
+        display: none;
+    }
+}
+@media screen and (max-width: 1465px){
+    div#content {
+        /* flex-direction: column; */
+    }
 }

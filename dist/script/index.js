@@ -134,7 +134,7 @@ async function getRealtimeData(){
 /**
  * Send a request to the server to get 
  * Simulated realtime data.
- * @param {Number} sampleSpeed Speed that the samples should be upated.
+ * @param {Number} sampleSpeed Speed that the samples should be updated.
  */
 async function requestSimulatedFeed(sampleSpeed){
     $.post(POST_REQ_SAMPLE, {sampleSpeed: sampleSpeed}, function(data, status){
@@ -726,7 +726,7 @@ function updateTripsTable(realtimeData){
             tripStats.children(`#tripTable-${id}`).remove();
             if(thisOneWasChecked){
                 let inputs = tripStats.children("input");
-                if(inputs){
+                if(inputs && inputs[0]){
                     inputs[0].checked = true;
                 }
             }
@@ -796,5 +796,8 @@ $(document).ready(async function(){
 
     // Begin polling for realtime feed data
     beginPolling();
+    
+    // NOTE: Cancel on start, so we don't have one from before a refresh
+    requestSimulatedFeedCancel();
 });
   

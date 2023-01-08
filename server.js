@@ -36,13 +36,14 @@ var app = express();
 /*
  * Server Variables/Data
  */
-var PORT = 8080;
+const PORT = 8080;
+const HOST = "localhost";
 
 // Start listening
-var server = app.listen(PORT, function () {
+var server = app.listen(PORT, HOST, function () {
     var host = server.address().address;
     var port = server.address().port;
-    console.log("App listening at http://%s:%s", host, port);
+    console.log("App listening at http://%s:%s", HOST, port);
 });
 
 app.use("/dist", express.static('./dist/'));
@@ -60,7 +61,7 @@ function haversine(coord1, coord2){
     const lat2 = coord2["lat"];
     const lon2 = coord2["lng"];
     
-    var R = 6378137;
+    const R = 6378137;
     const φ1 = lat1 * Math.PI/180; // φ, λ in radians
     const φ2 = lat2 * Math.PI/180;
     const Δφ = (lat2-lat1) * Math.PI/180;
@@ -1005,6 +1006,7 @@ app.get('/GetRTFeed', (req, res) => {
 app.post('/PostRequestSampleData', (req, res) => {
     console.log("Sample messages requested.");
     mochStreamSampleSpeed = req.body.sampleSpeed * 1000;
+    mochStreamCancelFlag = false;
     executeMochStream();
     res.status(200).send();
 });
@@ -1037,8 +1039,6 @@ async function main(){
         gtfsRoutes = determineRoutes();
         gtfsStops = determineStops();
         gtfsShapes = determineShapes();
-
-        executeMochStream()
     }
     catch (err){
         console.log(err);
