@@ -83,7 +83,7 @@ div#main{
 
 div#content {
     display: flex;
-    flex-flow: column;
+    flex-wrap: wrap;
 }
 #content h2 {
     margin: 20px;
