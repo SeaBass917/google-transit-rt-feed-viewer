@@ -318,6 +318,8 @@ async function executeMochStream(){
                     if(mochStreamCancelFlag) {
                         mochStreamCancelFlag = false;
                         writeRTFeed();
+                        // Restore path to default.
+                        PATH_RT_FEED = PATH_RT_FEED_DEFAULT;
                         return;
                     }
 
